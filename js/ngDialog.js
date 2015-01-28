@@ -196,7 +196,10 @@
 						scope = angular.isObject(options.scope) ? options.scope.$new() : $rootScope.$new();
 						var $dialog, $dialogParent;
 
-						$q.when(loadTemplate(options.template || options.templateUrl)).then(function (template) {
+						$q.all([loadTemplate(options.template || options.templateUrl), options.data]).then(function (tplAndVars) {
+
+							var template = tplAndVars[0];
+							var data = tplAndVars[1];
 
 							$templateCache.put(options.template || options.templateUrl, template);
 
@@ -209,11 +212,11 @@
 								'<div class="ngdialog-overlay"></div><div class="ngdialog-content">' + template + '</div>' :
 								'<div class="ngdialog-content">' + template + '</div>'));
 
-							if (options.data && angular.isString(options.data)) {
-								var firstLetter = options.data.replace(/^\s*/, '')[0];
-								scope.ngDialogData = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(options.data) : options.data;
-							} else if (options.data && angular.isObject(options.data)) {
-								scope.ngDialogData = options.data;
+							if (data && angular.isString(data)) {
+								var firstLetter = data.replace(/^\s*/, '')[0];
+								scope.ngDialogData = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(data) : data;
+							} else if (data && angular.isObject(data)) {
+								scope.ngDialogData = data;
 							}
 
 							if (options.controller && (angular.isString(options.controller) || angular.isArray(options.controller) || angular.isFunction(options.controller))) {
@@ -418,7 +421,8 @@
 		return {
 			restrict: 'A',
 			scope : {
-				ngDialogScope : '='
+				ngDialogScope : '=',
+				prepareData: '&'
 			},
 			link: function (scope, elem, attrs) {
 				elem.on('click', function (e) {
@@ -428,13 +432,16 @@
 					angular.isDefined(attrs.ngDialogClosePrevious) && ngDialog.close(attrs.ngDialogClosePrevious);
 
 					var defaults = ngDialog.getDefaults();
+	                //link https://github.com/angular/angular.js/issues/6404
+					var data = attrs.ngDialogData || (attrs.prepareData && scope.prepareData());
+
 
 					ngDialog.open({
 						template: attrs.ngDialog,
 						className: attrs.ngDialogClass || defaults.className,
 						controller: attrs.ngDialogController,
 						scope: ngDialogScope,
-						data: attrs.ngDialogData,
+						data: data,
 						showClose: attrs.ngDialogShowClose === 'false' ? false : (attrs.ngDialogShowClose === 'true' ? true : defaults.showClose),
 						closeByDocument: attrs.ngDialogCloseByDocument === 'false' ? false : (attrs.ngDialogCloseByDocument === 'true' ? true : defaults.closeByDocument),
 						closeByEscape: attrs.ngDialogCloseByEscape === 'false' ? false : (attrs.ngDialogCloseByEscape === 'true' ? true : defaults.closeByEscape),
