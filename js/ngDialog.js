@@ -200,6 +200,7 @@
 
 							var template = tplAndVars[0];
 							var data = tplAndVars[1];
+							var panel = scope.panel = {}
 
 							$templateCache.put(options.template || options.templateUrl, template);
 
@@ -214,9 +215,9 @@
 
 							if (data && angular.isString(data)) {
 								var firstLetter = data.replace(/^\s*/, '')[0];
-								scope.ngDialogData = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(data) : data;
+								panel.data = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(data) : data;
 							} else if (data && angular.isObject(data)) {
-								scope.ngDialogData = data;
+								panel.data = data;
 							}
 
 							if (options.controller && (angular.isString(options.controller) || angular.isArray(options.controller) || angular.isFunction(options.controller))) {
@@ -259,7 +260,7 @@
 								}
 							}
 
-							scope.closeThisDialog = function (value) {
+							panel.close = function (value) {
 								privateMethods.closeDialog($dialog, value);
 							};
 
