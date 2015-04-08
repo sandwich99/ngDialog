@@ -194,13 +194,13 @@
 						defers[self.latestID] = defer = $q.defer();
 
 						scope = angular.isObject(options.scope) ? options.scope.$new() : $rootScope.$new();
-						var $dialog, $dialogParent;
+						var $dialog, $dialogParent, locals;
+						locals = options.locals
+						locals.$template = loadTemplate(options.template || options.templateUrl);
+						$q.all(options.locals).then(function (locals) {
 
-						$q.all([loadTemplate(options.template || options.templateUrl), options.data]).then(function (tplAndVars) {
-
-							var template = tplAndVars[0];
-							var data = tplAndVars[1];
-							var panel = scope.panel = {}
+							var template = locals['$template'];
+							var controllerInstance;
 
 							$templateCache.put(options.template || options.templateUrl, template);
 
@@ -213,18 +213,23 @@
 								'<div class="ngdialog-overlay"></div><div class="ngdialog-content">' + template + '</div>' :
 								'<div class="ngdialog-content">' + template + '</div>'));
 
-							if (data && angular.isString(data)) {
-								var firstLetter = data.replace(/^\s*/, '')[0];
-								panel.data = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(data) : data;
-							} else if (data && angular.isObject(data)) {
-								panel.data = data;
-							}
+							// if (data && angular.isString(data)) {
+							// 	var firstLetter = data.replace(/^\s*/, '')[0];
+							// 	panel.data = (firstLetter === '{' || firstLetter === '[') ? angular.fromJson(data) : data;
+							// } else if (data && angular.isObject(data)) {
+							// 	panel.data = data;
+							// }
 
 							if (options.controller && (angular.isString(options.controller) || angular.isArray(options.controller) || angular.isFunction(options.controller))) {
-								var controllerInstance = $controller(options.controller, {
+								controllerInstance = $controller(options.controller, {
 									$scope: scope,
-									$element: $dialog
+									$element: $dialog,
+									locals: locals
 								});
+
+								if(options.bindToController) angular.extend(controllerInstance, locals);
+
+
 								$dialog.data('$ngDialogControllerController', controllerInstance);
 							}
 
@@ -260,9 +265,14 @@
 								}
 							}
 
-							panel.close = function (value) {
+							if(options.controllerAs) {
+								scope[options.controllerAs] = controllerInstance;
+							}
+
+							controllerInstance.close = function (value) {
 								privateMethods.closeDialog($dialog, value);
 							};
+
 
 							$timeout(function () {
 								$compile($dialog)(scope);
